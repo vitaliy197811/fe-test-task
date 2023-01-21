@@ -1,0 +1,44 @@
+version: '3.0'
+
+services:
+  postgres:
+      container_name: postgres_db
+      image: postgres:12-alpine
+      environment:
+        PG_DATA: /var/lib/postgresql/data
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ports:
+        - "5432:5432"
+      volumes:
+        - pgdata_1:/var/lib/postgresql/data
+  init-postgres:
+    build:
+      context: .
+      dockerfile: init-postgres.Dockerfile
+    container_name: init-postgres
+    depends_on:
+      postgres:
+        condition: service_started
+    command: ['npm', 'run', 'typeorm:run-migrations']
+  backend:
+    container_name: backend-test
+    build:
+      context: .
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    expose:
+      - 3000
+    depends_on:
+       init-postgres:
+         condition: service_completed_successfully
+    command: ['npm', 'run', 'start:dev']
+
+volumes:
+  pgdata_1:
+
+
